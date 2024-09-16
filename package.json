@@ -1,0 +1,11 @@
+{
+  "name": "ba-tool",
+  "version": "0.0.1",
+  "description": "Brauer analysis tool",
+  "keywords": ["ClojureScript", "Replicant", "vdom"],
+  "author": "rhab",
+  "license": "MIT",
+  "devDependencies": {
+    "shadow-cljs": "^2.28.12"
+  }
+}
