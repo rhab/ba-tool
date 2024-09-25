@@ -39,12 +39,20 @@
     [:li {:replicant/key "draft"} "Draft: " draft]
     [:li {:replicant/key "saved"} "Saved: " saved]]])
 
-(defn display-results [{:something/keys [sec-suc saved]}]
-  (prn "desde adento: " sec-suc)
+(defn listar-vals [lista]
+  (cond
+    (empty? lista) ""
+    :else (str (first lista) " < " (listar-vals (rest lista)))))
+
+(defn display-results [{:something/keys [sec-suc saved frecuencias sucesores]}]
+  (prn "desde adento: " sec-suc frecuencias)
   [:div
    [:button.collapsible "Valencies"]
    [:div.content
-    (into [:ul] (map #(vector :li %) sec-suc))]])
+    (into [:ul] (map #(vector :li (str % ": " (frecuencias %))) sec-suc))]
+   [:button.collapsible "Succesor Sequences"]
+   [:div.content
+    (into [:ul] (map #(vector :li (str "S_" (first (keys %)) " = " (listar-vals (first (vals %))) (first (first (vals %))) )) sucesores))]])
 
 (defn main-view [state]
   [:div {:style {:position "relative"}}
@@ -80,12 +88,29 @@
        :else x))
    action))
 
+(defn suc-nota [lista nota id-pal]
+  (cond
+    (empty? lista) lista
+    (= (first lista) nota) (cons (str "w_" id-pal) (suc-nota (rest lista) nota id-pal))
+    :else (suc-nota (rest lista) nota id-pal)
+    ))
+
+(defn recorrer-vectores [lista nota pos]
+  (cond
+    (empty? lista) lista
+    :else (cons (suc-nota (first lista) nota pos) (recorrer-vectores (rest lista) nota (inc pos)))
+    ))
+
+(defn genfn-seq-suc [w]
+  (fn [nota] {nota (flatten (recorrer-vectores w nota 1))}))
+
 (defn process [state]
   (let [w (into [] (map #(string/split % #" ") (string/split (:something/draft state) #"\n")))
         sec-suc (distinct (flatten w))
         w-freq (frequencies (flatten w))
-        valencias (map #(hash-map %1 (w-freq %1)) sec-suc)]
-    (swap! !state assoc :frecuencias w-freq :something/sec-suc sec-suc)
+        valencias (map #(hash-map %1 (w-freq %1)) sec-suc)
+        sucesores (map (genfn-seq-suc w) sec-suc)]
+    (swap! !state assoc :something/frecuencias w-freq :something/sec-suc sec-suc :something/sucesores sucesores)
     (prn "w: " w "sec-suc: " sec-suc " w-freq: " w-freq " val: " valencias)))
 
 (defn event-handler [{:replicant/keys [^js js-event] :as replicant-data} actions]
