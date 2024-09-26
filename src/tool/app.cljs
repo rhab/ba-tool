@@ -19,14 +19,22 @@
 
 (defn edit-view [{:something/keys [draftdd]}]
   [:div
-   [:h2 "This tool, (The Brauer Analysis Tool) allows you to perform a Brauer Analysis of some data. Enter a message below."]
+   [:h3 "This tool, (The Brauer Analysis Tool) allows you to perform a Brauer Analysis of some data. Enter a message below. Separate each letter with spaces and each word with new line. Then press the 'Process' button. To see an example use the button 'Example'."]
    [:form {:on {:submit [[:dom/prevent-default]
                          [:db/assoc :something/saved [:db/get :something/draft]]
                          [:tool/process]]}}
-    [:span.wrap-input
-     [:textarea#msg {:replicant/on-mount [[:db/assoc :something/draft-input-element :dom/node]]
-                     :on {:input [[:db/assoc :something/draft :event/target.value]]}
-                     :cols 50 :rows 10}]]
+
+    [:div.flex-container
+     [:div
+      [:h4 "Message"]
+      [:textarea#msg {:replicant/on-mount [[:db/assoc :something/draft-input-element :dom/node]]
+                      :on {:input [[:db/assoc :something/draft :event/target.value]]}
+                      :cols 50 :rows 10}]]
+     [:div
+      [:h4 "Heights"]
+      [:textarea#hei {:replicant/on-mount [[:db/assoc :something/height-input-element :dom/node]]
+                      :on {:input [[:db/assoc :something/height :event/target.value]]}
+                      :cols 50 :rows 10}]]]
     [:br]
     [:button {:type :submit} "Process"]
     [:button {:type :submit} "Clean"]
@@ -47,10 +55,10 @@
 (defn display-results [{:something/keys [sec-suc saved frecuencias sucesores]}]
   (prn "desde adento: " sec-suc frecuencias)
   [:div
-   [:button.collapsible "Valencies"]
+   [:button.collapsible "▷ Valencies"]
    [:div.content
     (into [:ul] (map #(vector :li (str % ": " (frecuencias %))) sec-suc))]
-   [:button.collapsible "Succesor Sequences"]
+   [:button.collapsible "▷ Succesor Sequences"]
    [:div.content
     (into [:ul] (map #(vector :li (str "S_" (first (keys %)) " = " (listar-vals (first (vals %))) (first (first (vals %))) )) sucesores))]])
 
@@ -58,7 +66,7 @@
   [:div {:style {:position "relative"}}
    [:h1 {:on {:click [:whatever]}} "BA - TOOL"]
    (edit-view state)
-   (display-view state)
+   ;; (display-view state)
    (display-results state)
    (prn state)])
 
