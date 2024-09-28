@@ -2,6 +2,7 @@
   (:require [clojure.string :as string]
             [clojure.walk :as walk]
             [gadget.inspector :as inspector]
+            [cljsjs.d3]
             [replicant.dom :as r]))
 
 ;; (r/set-dispatch!
@@ -19,7 +20,7 @@
 
 (defn edit-view [{:something/keys [draftdd]}]
   [:div
-   [:h3 "This tool, (The Brauer Analysis Tool) allows you to perform a Brauer Analysis of some data. Enter a message below. Separate each letter with spaces and each word with new line. Then press the 'Process' button. To see an example use the button 'Example'."]
+   [:h3 "This tool, (The Brauer Analysis Tool) allows you to perform a Brauer Analysis of some data. Enter a message below. Separate each letter with spaces and each word with a new line. Then press the 'Process' button. To see an example use the button 'Example'."]
    [:form {:on {:submit [[:dom/prevent-default]
                          [:db/assoc :something/saved [:db/get :something/draft]]
                          [:tool/process]]}}
@@ -60,7 +61,10 @@
     (into [:ul] (map #(vector :li (str % ": " (frecuencias %))) sec-suc))]
    [:button.collapsible "▷ Succesor Sequences"]
    [:div.content
-    (into [:ul] (map #(vector :li (str "S_" (first (keys %)) " = " (listar-vals (first (vals %))) (first (first (vals %))) )) sucesores))]])
+    (into [:ul] (map #(vector :li (str "S_" (first (keys %)) " = " (listar-vals (first (vals %))) (first (first (vals %))) )) sucesores))]
+   [:button.collapsible "▷ Heights plot"]
+   [:div.content
+    [:div#plot]]])
 
 (defn main-view [state]
   [:div {:style {:position "relative"}}
@@ -117,9 +121,37 @@
         sec-suc (distinct (flatten w))
         w-freq (frequencies (flatten w))
         valencias (map #(hash-map %1 (w-freq %1)) sec-suc)
-        sucesores (map (genfn-seq-suc w) sec-suc)]
+        sucesores (map (genfn-seq-suc w) sec-suc)
+        margin {:top 10 :right 40 :bottom 30 :left 30}
+        width (- 450 (:left margin) (:right margin))
+        height (- 400 (:top margin) (:bottom margin))
+        svg (-> js/d3
+                (.select "#plot")
+                (.append "svg")
+                (.attr "width" (+ width (:left margin) (:right margin)))
+                (.attr "height" (+ height (:top margin) (:bottom margin)))
+                (.append "g")
+                (.attr "transform" (str "translate(" (:left margin) "," (:top margin) ")")))
+        x (-> js/d3
+              (.scaleLinear)
+              (.domain [0 (count sec-suc)])
+              (.range [0 width]))
+        y (-> js/d3
+              (.scaleLinear)
+              (.domain [0 100])
+              (.range [height 0]))]
     (swap! !state assoc :something/frecuencias w-freq :something/sec-suc sec-suc :something/sucesores sucesores)
-    (prn "w: " w "sec-suc: " sec-suc " w-freq: " w-freq " val: " valencias)))
+    (prn "w: " w "sec-suc: " sec-suc " w-freq: " w-freq " val: " valencias)
+    (-> svg
+        (.append "g")
+        (.attr "transform" (str "translate(0," height ")"))
+        (.call (-> js/d3
+                   (.axisBottom x))))
+    (-> svg
+        (.append "g")
+        (.call (-> js/d3
+                   (.axisLeft y)))
+        )))
 
 (defn event-handler [{:replicant/keys [^js js-event] :as replicant-data} actions]
   (doseq [action actions]
