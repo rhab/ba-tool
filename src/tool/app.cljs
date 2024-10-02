@@ -38,8 +38,10 @@
                       :cols 50 :rows 10}]]]
     [:br]
     [:button {:type :submit} "Process"]
-    [:button {:type :submit} "Clean"]
-    [:button {:type :submit} "Example"]]])
+    [:button {:on {:click [[:dom/reload]]}} "Clean"]
+    [:button {:on {:click [[:db/assoc :something/draft "a n i t a"]
+                           [:dom/set-input-text [:db/get :something/draft-input-element] "a n i t a"]]}}
+     "Example"]]])
 
 (defn display-view [{:something/keys [draft saved]}]
   [:div
@@ -123,7 +125,8 @@
         valencias (map #(hash-map %1 (w-freq %1)) sec-suc)
         sucesores (map (genfn-seq-suc w) sec-suc)
         heights (if (state :something/height) (into [] (map #(string/split % #" ") (string/split (:something/height state) #"\n"))) [])
-        heights-data (map-indexed #(hash-map :x %1 :y (second %2)) heights)
+        heights-data (map-indexed #(hash-map :x (inc %1) :y (second %2)) heights)
+        heights-data-y (map #(js/parseInt (second %)) heights)  
         margin {:top 10 :right 40 :bottom 30 :left 30}
         width (- 450 (:left margin) (:right margin))
         height (- 400 (:top margin) (:bottom margin))
@@ -136,14 +139,14 @@
                 (.attr "transform" (str "translate(" (:left margin) "," (:top margin) ")")))
         x (-> js/d3
               (.scaleLinear)
-              (.domain [0 (- (count sec-suc) 1)])
+              (.domain [0 (count sec-suc)])
               (.range [0 width]))
         y (-> js/d3
               (.scaleLinear)
-              (.domain [0 50])
+              (.domain [0 (* 1.10 (apply max heights-data-y))])
               (.range [height 0]))]
     (swap! !state assoc :something/frecuencias w-freq :something/sec-suc sec-suc :something/sucesores sucesores)
-    (prn "w: " w "sec-suc: " sec-suc " w-freq: " w-freq " heig: " heights " heights-data " heights-data)
+    (prn "w: " w "sec-suc: " sec-suc " w-freq: " w-freq " heig: " heights " heights-data " heights-data "heights-y: " (apply max heights-data-y))
     (-> svg
         (.append "g")
         (.attr "transform" (str "translate(0," height ")"))
@@ -178,6 +181,8 @@
         :dom/set-input-text (set! (.-value (first args)) (second args))
         :dom/focus-element (.focus (first args))
         :tool/process (process @!state)
+        :tool/example (swap! !state assoc :something/draft "a n a\na l i n a\na m i n")
+        :dom/reload (js/location.reload)
         (prn "Unknown action" action))))
   (render! @!state))
 
