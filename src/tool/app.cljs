@@ -15,6 +15,8 @@
 
 (defonce ^:private !state (atom {:ui/banner-text "An annoying banner"}))
 
+(def ejm "a n a\na l i n a\na m i n")
+
 (defn event-handler2 [replicant-data handler-data]
      (prn "Click!"))
 
@@ -23,7 +25,8 @@
    [:h3 "This tool, (The Brauer Analysis Tool) allows you to perform a Brauer Analysis of some data. Enter a message below. Separate each letter with spaces and each word with a new line. Then press the 'Process' button. To see an example use the button 'Example'."]
    [:form {:on {:submit [[:dom/prevent-default]
                          [:db/assoc :something/saved [:db/get :something/draft]]
-                         [:tool/process]]}}
+                         [:tool/process]
+                         [:dom/set-input-text [:db/get :something/height-input-element] [:db/get :something/height]]]}}
 
     [:div.flex-container
      [:div
@@ -39,8 +42,8 @@
     [:br]
     [:button {:type :submit} "Process"]
     [:button {:on {:click [[:dom/reload]]}} "Clean"]
-    [:button {:on {:click [[:db/assoc :something/draft "a n i t a"]
-                           [:dom/set-input-text [:db/get :something/draft-input-element] "a n i t a"]]}}
+    [:button {:on {:click [[:db/assoc :something/draft ejm]
+                           [:dom/set-input-text [:db/get :something/draft-input-element] ejm]]}}
      "Example"]]])
 
 (defn display-view [{:something/keys [draft saved]}]
@@ -124,7 +127,7 @@
         w-freq (frequencies (flatten w))
         valencias (map #(hash-map %1 (w-freq %1)) sec-suc)
         sucesores (map (genfn-seq-suc w) sec-suc)
-        heights (if (state :something/height) (into [] (map #(string/split % #" ") (string/split (:something/height state) #"\n"))) [])
+        heights (if (state :something/height) (into [] (map #(string/split % #" ") (string/split (:something/height state) #"\n"))) nil)
         heights-data (map-indexed #(hash-map :x (inc %1) :y (second %2)) heights)
         heights-data-y (map #(js/parseInt (second %)) heights)  
         margin {:top 10 :right 40 :bottom 30 :left 30}
@@ -143,9 +146,10 @@
               (.range [0 width]))
         y (-> js/d3
               (.scaleLinear)
-              (.domain [0 (* 1.10 (apply max heights-data-y))])
+              (.domain [(* 1 (apply min heights-data-y)) (* 1.10 (apply max heights-data-y))])
               (.range [height 0]))]
     (swap! !state assoc :something/frecuencias w-freq :something/sec-suc sec-suc :something/sucesores sucesores)
+    (swap! !state assoc :something/height (if (not heights) (apply str (interpose "\n" sec-suc)) (:something/height state)))
     (prn "w: " w "sec-suc: " sec-suc " w-freq: " w-freq " heig: " heights " heights-data " heights-data "heights-y: " (apply max heights-data-y))
     (-> svg
         (.append "g")
